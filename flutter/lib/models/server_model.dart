@@ -31,6 +31,7 @@ class ServerModel with ChangeNotifier {
   bool _fileOk = false;
   bool _clipboardOk = false;
   bool _showElevation = false;
+  bool _hideCm = false;
   bool hideCm = false;
   int _connectStatus = 0; // Rendezvous Server status
   String _verificationMethod = "";
@@ -66,6 +67,8 @@ class ServerModel with ChangeNotifier {
 
   bool get showElevation => _showElevation;
 
+  bool get hideCmSetting => _hideCm;
+
   int get connectStatus => _connectStatus;
 
   String get verificationMethod {
@@ -84,12 +87,10 @@ class ServerModel with ChangeNotifier {
 
   setVerificationMethod(String method) async {
     await bind.mainSetOption(key: kOptionVerificationMethod, value: method);
-    /*
     if (method != kUsePermanentPassword) {
       await bind.mainSetOption(
           key: 'allow-hide-cm', value: bool2option('allow-hide-cm', false));
     }
-    */
   }
 
   String get temporaryPasswordLength {
@@ -106,12 +107,10 @@ class ServerModel with ChangeNotifier {
 
   setApproveMode(String mode) async {
     await bind.mainSetOption(key: kOptionApproveMode, value: mode);
-    /*
     if (mode != 'password') {
       await bind.mainSetOption(
           key: 'allow-hide-cm', value: bool2option('allow-hide-cm', false));
     }
-    */
   }
 
   bool get allowNumericOneTimePassword => _allowNumericOneTimePassword;
@@ -134,8 +133,6 @@ class ServerModel with ChangeNotifier {
     _emptyIdShow = translate("Generating ...");
     _serverId = IDTextEditingController(text: _emptyIdShow);
 
-    /*
-    // initital _hideCm at startup
     final verificationMethod =
         bind.mainGetOptionSync(key: kOptionVerificationMethod);
     final approveMode = bind.mainGetOptionSync(key: kOptionApproveMode);
@@ -145,7 +142,6 @@ class ServerModel with ChangeNotifier {
         verificationMethod == kUsePermanentPassword)) {
       _hideCm = false;
     }
-    */
 
     timerCallback() async {
       final connectionStatus =
@@ -232,14 +228,12 @@ class ServerModel with ChangeNotifier {
     final approveMode = await bind.mainGetOption(key: kOptionApproveMode);
     final numericOneTimePassword =
         await mainGetBoolOption(kOptionAllowNumericOneTimePassword);
-    /*
     var hideCm = option2bool(
         'allow-hide-cm', await bind.mainGetOption(key: 'allow-hide-cm'));
     if (!(approveMode == 'password' &&
         verificationMethod == kUsePermanentPassword)) {
       hideCm = false;
     }
-    */
     if (_approveMode != approveMode) {
       _approveMode = approveMode;
       update = true;
@@ -274,10 +268,10 @@ class ServerModel with ChangeNotifier {
       _allowNumericOneTimePassword = numericOneTimePassword;
       update = true;
     }
-    /*
     if (_hideCm != hideCm) {
       _hideCm = hideCm;
       if (desktopType == DesktopType.cm) {
+        this.hideCm = hideCm;
         if (hideCm) {
           await hideCmWindow();
         } else {
@@ -286,7 +280,6 @@ class ServerModel with ChangeNotifier {
       }
       update = true;
     }
-    */
     if (update) {
       notifyListeners();
     }

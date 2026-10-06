@@ -1381,8 +1381,8 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
             if (usePassword && !isChangePermanentPasswordDisabled())
               _SubButton('Set permanent password', setPasswordDialog,
                   permEnabled && !locked),
-            // if (usePassword)
-            //   hide_cm(!locked).marginOnly(left: _kContentHSubMargin - 6),
+            if (usePassword)
+              hide_cm(!locked).marginOnly(left: _kContentHSubMargin - 6),
             if (usePassword) radios[2],
           ]);
         })));
@@ -1616,12 +1616,13 @@ class _SafetyState extends State<_Safety> with AutomaticKeepAliveClientMixin {
           return Tooltip(
               message: enableHideCm ? "" : translate('hide_cm_tip'),
               child: GestureDetector(
-                onTap:
-                    enableHideCm ? () => onHideCmChanged(!model.hideCm) : null,
+                onTap: enableHideCm
+                    ? () => onHideCmChanged(!model.hideCmSetting)
+                    : null,
                 child: Row(
                   children: [
                     Checkbox(
-                            value: model.hideCm,
+                            value: model.hideCmSetting,
                             onChanged: enabled && enableHideCm
                                 ? onHideCmChanged
                                 : null)
