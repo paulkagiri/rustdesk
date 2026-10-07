@@ -1,0 +1,6 @@
+numpy>=1.26,<3
+opencv-python>=4.10,<5
+Pillow>=10,<12
+pyvirtualcam>=0.14,<1
+python-dotenv>=1,<2
+sounddevice>=0.5,<1

@@ -23,6 +23,8 @@ Yet another remote desktop solution, written in Rust. Works out of the box with 
 
 RustDesk welcomes contribution from everyone. See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for help getting started.
 
+This fork includes an optional [camera and microphone bridge](tools/device_media/README.md) for Windows and macOS desktop sessions.
+
 [**FAQ**](https://github.com/rustdesk/rustdesk/wiki/FAQ)
 
 [**BINARY DOWNLOAD**](https://github.com/rustdesk/rustdesk/releases)

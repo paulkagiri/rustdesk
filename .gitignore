@@ -4,6 +4,8 @@
 .idea
 .DS_Store
 .env
+tools/device_media/.venv/
+tools/device_media/*.log
 libsciter-gtk.so
 src/ui/inline.rs
 extractor
