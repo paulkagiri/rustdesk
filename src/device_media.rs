@@ -120,9 +120,18 @@ async fn write_frame(stream: &mut TcpStream, frame: &DeviceMediaFrame) -> io::Re
 }
 
 async fn connect_local(addr: &str) -> io::Result<TcpStream> {
-    timeout(Duration::from_millis(250), TcpStream::connect(addr))
-        .await
-        .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "media helper unavailable"))?
+    timeout(Duration::from_millis(250), async {
+        let mut stream = TcpStream::connect(addr).await?;
+        if stream.read_u8().await? != 1 {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "media helper handshake failed",
+            ));
+        }
+        Ok(stream)
+    })
+    .await
+    .map_err(|_| io::Error::new(io::ErrorKind::TimedOut, "media helper unavailable"))?
 }
 
 /// Connect only after the remote desktop login succeeds. Dropping the returned

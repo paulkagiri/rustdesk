@@ -19,6 +19,7 @@ from .protocol import (
     CAPTURE_PORT,
     FPS,
     HEIGHT,
+    READY,
     RECEIVER_PORT,
     VIDEO,
     WIDTH,
@@ -148,6 +149,7 @@ def capture(no_audio: bool, no_video: bool) -> None:
             print("Desktop session connected. Capturing enabled sources.", flush=True)
             with closing(conn):
                 try:
+                    conn.sendall(READY)
                     _capture_session(conn, no_audio, no_video)
                 except Exception as exc:
                     print(f"Capture stopped: {exc}", flush=True)
@@ -254,6 +256,7 @@ def receive(no_audio: bool, no_video: bool) -> None:
             print("Desktop session connected. Feeding virtual devices.", flush=True)
             with closing(conn):
                 try:
+                    conn.sendall(READY)
                     _receive_session(conn, no_audio, no_video)
                 except Exception as exc:
                     print(f"Device output stopped: {exc}", flush=True)

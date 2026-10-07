@@ -1941,6 +1941,14 @@ impl Connection {
             audit["two_factor"] = json!(self.conn_audit_two_factor.as_i64());
         }
         self.post_conn_audit(audit);
+        #[cfg(any(target_os = "windows", target_os = "macos"))]
+        if self.is_authed_remote_conn() && !self.device_media_checked {
+            self.device_media_checked = true;
+            self.device_media_tx = crate::device_media::start_receiver().await;
+            if self.device_media_tx.is_some() {
+                log::info!("Local virtual-device helper connected");
+            }
+        }
         #[allow(unused_mut)]
         let mut username = crate::platform::get_active_username();
         let mut res = LoginResponse::new();
@@ -1996,7 +2004,10 @@ impl Connection {
             );
         }
         #[cfg(any(target_os = "windows", target_os = "macos"))]
-        platform_additions.insert("device_media_bridge".into(), json!(true));
+        platform_additions.insert(
+            "device_media_bridge".into(),
+            json!(self.device_media_tx.as_ref().is_some_and(|tx| !tx.is_closed())),
+        );
 
         #[cfg(any(target_os = "windows", feature = "unix-file-copy-paste"))]
         {
@@ -4043,13 +4054,6 @@ impl Connection {
                 Some(message::Union::DeviceMediaFrame(frame)) => {
                     if !self.is_authed_remote_conn() || !self.device_media_limit.allow(&frame) {
                         return true;
-                    }
-                    if !self.device_media_checked {
-                        self.device_media_checked = true;
-                        self.device_media_tx = crate::device_media::start_receiver().await;
-                        if self.device_media_tx.is_some() {
-                            log::info!("Local virtual-device helper connected");
-                        }
                     }
                     if let Some(tx) = &self.device_media_tx {
                         if tx.try_send(frame).is_err() && tx.is_closed() {
