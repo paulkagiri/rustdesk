@@ -5273,7 +5273,9 @@ impl Connection {
         }
         self.closed = true;
         #[cfg(any(target_os = "windows", target_os = "macos"))]
-        self.device_media_tx = None;
+        {
+            self.device_media_tx = None;
+        }
         // If voice A,B -> C, and A,B has voice call
         // B disconnects, C will reset the voice call input.
         //
