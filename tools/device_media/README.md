@@ -7,6 +7,7 @@ The current build uses installed virtual devices. On the remote computer, apps s
 ## One-time setup
 
 1. Install a build of this fork on **both** computers. The controller and remote host must both include `DeviceMediaFrame` support. Start a normal remote desktop session, not a file transfer or camera-view session.
+   The manual **Windows fork build** and **macOS fork build** GitHub Actions workflows produce Windows installers and unsigned macOS DMG artifacts without publishing a release. For an M-series Mac, download the `rustdesk-unsigned-macos-aarch64` artifact.
 2. Install 64-bit Python 3.11 or 3.12 on each computer. Use a native Apple silicon Python on an M-series Mac.
 3. On each computer, set up this helper in `tools/device_media`:
 
