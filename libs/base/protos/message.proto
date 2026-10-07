@@ -997,6 +997,13 @@ message PortForwardChannel {
   }
 }
 
+// Media from the controller's local microphone/camera for virtual devices on the host.
+// This is only accepted on an authenticated remote-desktop connection.
+message DeviceMediaFrame {
+  uint32 kind = 1; // 1: mono 48 kHz signed 16-bit PCM, 2: JPEG camera frame
+  bytes data = 2;
+}
+
 message Message {
   oneof union {
     SignedId signed_id = 3;
@@ -1030,5 +1037,6 @@ message Message {
     TerminalAction terminal_action = 31;
     TerminalResponse terminal_response = 32;
     PortForwardChannel port_forward_channel = 33;
+    DeviceMediaFrame device_media_frame = 34;
   }
 }

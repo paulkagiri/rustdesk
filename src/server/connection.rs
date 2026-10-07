@@ -403,6 +403,12 @@ pub struct Connection {
     enable_file_transfer: bool,
     // by peer
     audio_sender: Option<MediaSender>,
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    device_media_tx: Option<mpsc::Sender<DeviceMediaFrame>>,
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    device_media_checked: bool,
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    device_media_limit: crate::device_media::RateLimit,
     // audio by the remote peer/client
     tx_input: std_mpsc::Sender<MessageInput>,
     // handle input messages
@@ -627,6 +633,12 @@ impl Connection {
             portable: Default::default(),
             from_switch: false,
             audio_sender: None,
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            device_media_tx: None,
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            device_media_checked: false,
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            device_media_limit: crate::device_media::RateLimit::new(),
             voice_call_request_timestamp: None,
             voice_calling: false,
             options_in_login: None,
@@ -1983,6 +1995,8 @@ impl Connection {
                 json!(privacy_mode::get_supported_privacy_mode_impl()),
             );
         }
+        #[cfg(any(target_os = "windows", target_os = "macos"))]
+        platform_additions.insert("device_media_bridge".into(), json!(true));
 
         #[cfg(any(target_os = "windows", feature = "unix-file-copy-paste"))]
         {
@@ -4025,6 +4039,24 @@ impl Connection {
                         }
                     }
                 }
+                #[cfg(any(target_os = "windows", target_os = "macos"))]
+                Some(message::Union::DeviceMediaFrame(frame)) => {
+                    if !self.is_authed_remote_conn() || !self.device_media_limit.allow(&frame) {
+                        return true;
+                    }
+                    if !self.device_media_checked {
+                        self.device_media_checked = true;
+                        self.device_media_tx = crate::device_media::start_receiver().await;
+                        if self.device_media_tx.is_some() {
+                            log::info!("Local virtual-device helper connected");
+                        }
+                    }
+                    if let Some(tx) = &self.device_media_tx {
+                        if tx.try_send(frame).is_err() && tx.is_closed() {
+                            self.device_media_tx = None;
+                        }
+                    }
+                }
                 Some(message::Union::VoiceCallRequest(request)) => {
                     if request.is_connect {
                         self.voice_call_request_timestamp = Some(
@@ -5236,6 +5268,8 @@ impl Connection {
             return;
         }
         self.closed = true;
+        #[cfg(any(target_os = "windows", target_os = "macos"))]
+        self.device_media_tx = None;
         // If voice A,B -> C, and A,B has voice call
         // B disconnects, C will reset the voice call input.
         //

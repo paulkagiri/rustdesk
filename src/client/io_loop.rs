@@ -111,6 +111,8 @@ struct ParsedPeerInfo {
     idd_impl: String,
     support_view_camera: bool,
     support_terminal: bool,
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    support_device_media: bool,
 }
 
 impl ParsedPeerInfo {
@@ -269,6 +271,11 @@ impl<T: InvokeUiSession> Remote<T> {
                 let mut webrtc_suspect_since: Option<Instant> = None;
                 let mut last_rx_progress = peer.rx_progress();
                 let mut peer_gone = false;
+                let mut device_media_rx: Option<mpsc::Receiver<DeviceMediaFrame>> = None;
+                #[cfg(any(target_os = "windows", target_os = "macos"))]
+                let mut device_media_task = None;
+                #[cfg(any(target_os = "windows", target_os = "macos"))]
+                let mut device_media_started = false;
 
                 loop {
                     tokio::select! {
@@ -289,6 +296,18 @@ impl<T: InvokeUiSession> Remote<T> {
                                         if !self.handle_msg_from_peer(bytes, &mut peer).await {
                                             break
                                         }
+                                        #[cfg(any(target_os = "windows", target_os = "macos"))]
+                                        if self.is_connected && self.handler.is_default()
+                                            && self.peer_info.support_device_media
+                                            && !device_media_started
+                                        {
+                                            device_media_started = true;
+                                            if let Some((rx, task)) = crate::device_media::start_capture().await {
+                                                device_media_rx = Some(rx);
+                                                device_media_task = Some(task);
+                                                log::info!("Local microphone and camera helper connected");
+                                            }
+                                        }
                                     }
                                 }
                             } else {
@@ -307,6 +326,23 @@ impl<T: InvokeUiSession> Remote<T> {
                                 if !self.handle_msg_from_ui(d, &mut peer).await {
                                     break;
                                 }
+                            }
+                        }
+                        frame = async {
+                            match device_media_rx.as_mut() {
+                                Some(rx) => rx.recv().await,
+                                None => std::future::pending().await,
+                            }
+                        } => {
+                            if let Some(frame) = frame {
+                                let mut msg = Message::new();
+                                msg.set_device_media_frame(frame);
+                                if let Err(err) = peer.send(&msg).await {
+                                    log::info!("Could not send device media: {}", err);
+                                    break;
+                                }
+                            } else {
+                                device_media_rx = None;
                             }
                         }
                         _msg = rx_clip_client.recv() => {
@@ -404,6 +440,10 @@ impl<T: InvokeUiSession> Remote<T> {
                             });
                         }
                     }
+                }
+                #[cfg(any(target_os = "windows", target_os = "macos"))]
+                if let Some(task) = device_media_task {
+                    task.abort();
                 }
                 log::debug!("Exit io_loop of id={}", self.handler.get_id());
                 // Stop client audio server.
@@ -2385,6 +2425,13 @@ impl<T: InvokeUiSession> Remote<T> {
                 .map(|v| v.as_bool())
                 .flatten()
                 .unwrap_or(false);
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
+            {
+                self.peer_info.support_device_media = platform_additions
+                    .get("device_media_bridge")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+            }
         }
     }
 
