@@ -28,7 +28,7 @@ This helper sends a controller Mac's camera and microphone through an existing R
    ```
 
 3. Install virtual devices on the **remote** computer only:
-   - **Windows:** Install [OBS Studio](https://obsproject.com/download) and [VB-CABLE](https://vb-audio.com/Cable/index.htm). Set `AUDIO_OUTPUT_DEVICE` in `.env` to the **CABLE Input** playback device shown by `devices`.
+   - **Windows:** Install [OBS Studio](https://obsproject.com/download) and [VB-CABLE](https://vb-audio.com/Cable/index.htm). For VB-CABLE, extract the download, run its setup program as administrator and restart Windows. Run `devices` again, then set `AUDIO_OUTPUT_DEVICE` in `.env` to the index of the **CABLE Input** playback device (an entry with output channels).
    - **macOS:** Install [OBS Studio 30 or later](https://obsproject.com/download) and [BlackHole 2ch](https://github.com/ExistentialAudio/BlackHole). If prompted, approve OBS's camera extension. Start and stop OBS Virtual Camera once, then quit OBS. Set `AUDIO_OUTPUT_DEVICE=BlackHole 2ch` in `.env`.
 
 On the **controller**, `CAMERA_INDEX=0` and a blank `MIC_INPUT_DEVICE` use the first camera and default microphone. Change them if needed. On macOS, allow camera and microphone access for the terminal or Python when prompted.
