@@ -47,3 +47,5 @@ On the **controller**, `CAMERA_INDEX=0` and a blank `MIC_INPUT_DEVICE` use the f
 4. In an app on the remote computer, select **OBS Virtual Camera**. For its microphone, select **CABLE Output** on Windows or **BlackHole 2ch** on macOS. Check the camera preview and microphone input meter. Reopen the app if the new devices do not appear.
 
 For a camera-only test, add `--no-audio` to both helper commands. For a microphone-only test, add `--no-video`. Stop either helper with Ctrl+C. OBS's own virtual camera must be stopped while `receive` runs. If audio is missing, check the exact playback device name printed by `devices` and the helper's terminal output.
+
+If the desktop becomes slow when video starts, set `CAMERA_FPS=3` and `JPEG_QUALITY=30` in the controller's `.env`. Restart `capture`, then reconnect the desktop session. Stop `capture` during a slow session to check whether the camera stream is the cause.

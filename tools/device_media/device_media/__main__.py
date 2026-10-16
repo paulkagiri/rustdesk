@@ -56,7 +56,7 @@ def _offer(q: queue.Queue, item: tuple[int, bytes]) -> None:
         pass
 
 
-def _camera_capture(out: queue.Queue, stop: threading.Event, errors: queue.Queue) -> None:
+def _camera_capture(out: queue.Queue, stop: threading.Event, errors: queue.Queue, fps: int) -> None:
     import cv2
 
     index = int(_setting("CAMERA_INDEX", "0"))
@@ -84,7 +84,7 @@ def _camera_capture(out: queue.Queue, stop: threading.Event, errors: queue.Queue
                 else:
                     errors.put("Camera JPEG exceeds the media frame limit. Lower JPEG_QUALITY.")
                     return
-            stop.wait(max(0, 1 / FPS - (time.monotonic() - started)))
+            stop.wait(max(0, 1 / fps - (time.monotonic() - started)))
     finally:
         camera.release()
 
@@ -98,7 +98,10 @@ def _capture_session(conn: socket.socket, no_audio: bool, no_video: bool) -> Non
     camera_thread = None
     stream = None
     if not no_video:
-        camera_thread = threading.Thread(target=_camera_capture, args=(frames, stop, errors), daemon=True)
+        camera_fps = int(_setting("CAMERA_FPS", str(FPS)))
+        if not 1 <= camera_fps <= FPS:
+            raise ValueError(f"CAMERA_FPS must be between 1 and {FPS}")
+        camera_thread = threading.Thread(target=_camera_capture, args=(frames, stop, errors, camera_fps), daemon=True)
         camera_thread.start()
     try:
         if not no_audio:
