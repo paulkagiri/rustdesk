@@ -5,7 +5,7 @@ This helper sends a controller Mac's camera and microphone through an existing R
 ## Set up both computers
 
 1. Install a build of this fork on both computers. Standard RustDesk builds do not include this bridge. The **Windows fork build** and **macOS fork build** GitHub Actions workflows provide test builds. Choose the `aarch64` macOS build for Apple silicon.
-2. Install 64-bit Python 3.11 on both computers. Use a native Apple silicon Python on an Apple silicon Mac. From the repository root on each computer, run the matching commands below. If you copied only `tools/device_media`, enter that folder instead and skip the `cd` command.
+2. Install 64-bit Python 3.11 through 3.14 on both computers. Use a native Apple silicon build on an Apple silicon Mac. The commands below use 3.11; change that to your installed version if needed. Run them from the repository root. If you copied only `tools/device_media`, enter that folder and skip the `cd` command.
 
    **macOS**
 
