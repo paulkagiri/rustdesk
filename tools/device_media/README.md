@@ -1,15 +1,11 @@
-# Camera and microphone over a desktop session
+# Camera and microphone bridge
 
-This optional bridge makes the controller's camera and microphone available to apps on a remote Windows or Apple silicon Mac. Media travels inside the authenticated RustDesk desktop connection. The helpers listen only on `127.0.0.1` on their own computers. They do not open another network connection between computers.
+This helper sends a controller Mac's camera and microphone through an existing RustDesk desktop session to a remote Windows PC or Apple silicon Mac. It uses only local connections to RustDesk on each computer. The remote app must select the virtual camera and microphone; this helper does not change system defaults.
 
-The current build uses installed virtual devices. On the remote computer, apps select **OBS Virtual Camera** for video and the virtual cable's **recording/input** device for audio. RustDesk itself does not install those devices.
+## Set up both computers
 
-## One-time setup
-
-1. Install a build of this fork on **both** computers. The controller and remote host must both include `DeviceMediaFrame` support. Start a normal remote desktop session, not a file transfer or camera-view session.
-   The manual **Windows fork build** and **macOS fork build** GitHub Actions workflows produce Windows installers and unsigned macOS DMG artifacts without publishing a release. For an M-series Mac, download the `rustdesk-unsigned-macos-aarch64` artifact.
-2. Install 64-bit Python 3.11 or 3.12 on each computer. Use a native Apple silicon Python on an M-series Mac.
-3. On each computer, set up this helper in `tools/device_media`:
+1. Install a build of this fork on both computers. Standard RustDesk builds do not include this bridge. The **Windows fork build** and **macOS fork build** GitHub Actions workflows provide test builds. Choose the `aarch64` macOS build for Apple silicon.
+2. Install 64-bit Python 3.11 on both computers. Use a native Apple silicon Python on an Apple silicon Mac. From the repository root on each computer, run the matching commands below. If you copied only `tools/device_media`, enter that folder instead and skip the `cd` command.
 
    **macOS**
 
@@ -31,37 +27,23 @@ The current build uses installed virtual devices. On the remote computer, apps s
    .\.venv\Scripts\python.exe -m device_media devices
    ```
 
-4. On a **remote Windows** computer, install [OBS Studio](https://obsproject.com/download) for its virtual camera and [VB-CABLE](https://vb-audio.com/Cable/index.htm) for its virtual microphone. Set `AUDIO_OUTPUT_DEVICE` in the helper's `.env` to the **CABLE Input** playback device shown by `devices`. Remote apps then choose **CABLE Output** as their microphone.
-5. On a **remote Mac**, install [OBS Studio 30 or later](https://obsproject.com/download) and [BlackHole 2ch](https://github.com/ExistentialAudio/BlackHole). Approve OBS's camera extension in System Settings if macOS asks. Open OBS once, start and stop its virtual camera, then quit OBS. Set `AUDIO_OUTPUT_DEVICE=BlackHole 2ch` in `.env`. Remote apps choose **BlackHole 2ch** as their microphone.
-6. On the **controller Mac**, choose `CAMERA_INDEX` and `MIC_INPUT_DEVICE` in `.env`. A blank microphone value uses the default input. Grant camera and microphone permission to the terminal or Python process when macOS asks.
+3. Install virtual devices on the **remote** computer only:
+   - **Windows:** Install [OBS Studio](https://obsproject.com/download) and [VB-CABLE](https://vb-audio.com/Cable/index.htm). Set `AUDIO_OUTPUT_DEVICE` in `.env` to the **CABLE Input** playback device shown by `devices`.
+   - **macOS:** Install [OBS Studio 30 or later](https://obsproject.com/download) and [BlackHole 2ch](https://github.com/ExistentialAudio/BlackHole). If prompted, approve OBS's camera extension. Start and stop OBS Virtual Camera once, then quit OBS. Set `AUDIO_OUTPUT_DEVICE=BlackHole 2ch` in `.env`.
 
-The remote helper deliberately ignores audio until `AUDIO_OUTPUT_DEVICE` is set. It never sends microphone audio to the remote computer's speakers by default.
+On the **controller**, `CAMERA_INDEX=0` and a blank `MIC_INPUT_DEVICE` use the first camera and default microphone. Change them if needed. On macOS, allow camera and microphone access for the terminal or Python when prompted.
 
-## Run
+## Quick test
 
-Start the remote helper in a terminal in the signed-in user's session before connecting:
+1. On the remote computer, run `receive` from `tools/device_media` in the signed-in desktop session:
 
-```sh
-.venv/bin/python -m device_media receive
-```
+   ```sh
+   .venv/bin/python -m device_media receive
+   ```
 
-On Windows, use `.\.venv\Scripts\python.exe -m device_media receive` instead. Start the controller helper on the Mac:
+   On Windows, run `.\.venv\Scripts\python.exe -m device_media receive` instead.
+2. On the controller, run `.venv/bin/python -m device_media capture` from the same folder.
+3. Connect with RustDesk using a normal desktop session. If already connected, disconnect and reconnect. Both terminals should report `Desktop session connected`.
+4. In an app on the remote computer, select **OBS Virtual Camera**. For its microphone, select **CABLE Output** on Windows or **BlackHole 2ch** on macOS. Check the camera preview and microphone input meter. Reopen the app if the new devices do not appear.
 
-```sh
-.venv/bin/python -m device_media capture
-```
-
-Then connect with RustDesk. Capture starts after the remote desktop login succeeds. The remote helper feeds the virtual devices once it receives media. Select **OBS Virtual Camera** and the virtual cable's recording device in the remote app. If an app was already open, refresh its device list or reopen it.
-
-Use `--no-audio` or `--no-video` on either helper to run one device only. Stop a helper with Ctrl+C. Disconnecting RustDesk closes both local media sockets; the controller helper stops opening the camera and microphone and waits for the next session.
-
-## Limits and checks
-
-- Video is 640 × 480 JPEG at up to 10 frames per second. Audio is 48 kHz mono PCM. The bridge drops excess frames when the connection or a virtual device falls behind.
-- Virtual camera and cable devices must be installed separately on each remote computer. This fork does not bundle OBS, VB-CABLE or BlackHole.
-- A virtual camera can normally be driven by only one process at a time. Stop OBS's own virtual camera before running `receive`.
-- Run `python -m device_media devices` and use the exact playback device name or index if the audio helper cannot open its output. Check the helper's terminal output for camera permission and device errors.
-- Both RustDesk ends need this fork's protocol change. With an older remote build, the controller helper remains idle.
-- One controller helper feeds one desktop session at a time. Close that session before connecting to another host with the same camera and microphone.
-
-The OBS and audio-device setup follows the [pyvirtualcam instructions](https://github.com/letmaik/pyvirtualcam), [OBS camera extension guide](https://obsproject.com/kb/virtual-camera-troubleshooting), [VB-CABLE device naming](https://vb-audio.com/Cable/index.htm) and [BlackHole documentation](https://github.com/ExistentialAudio/BlackHole).
+For a camera-only test, add `--no-audio` to both helper commands. For a microphone-only test, add `--no-video`. Stop either helper with Ctrl+C. OBS's own virtual camera must be stopped while `receive` runs. If audio is missing, check the exact playback device name printed by `devices` and the helper's terminal output.
